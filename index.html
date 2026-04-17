@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>うちの子育成</title>
+
+<style>
+body {
+  font-family: sans-serif;
+  text-align: center;
+  background: linear-gradient(#ffe4ec, #fff);
+}
+
+h2 {
+  margin-top: 10px;
+}
+
+button {
+  margin: 5px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: none;
+  background: #ff9eb5;
+  color: white;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+.card {
+  background: white;
+  margin: 15px;
+  padding: 15px;
+  border-radius: 20px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+img {
+  width: 140px;
+  border-radius: 20px;
+}
+
+input {
+  padding: 5px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+}
+</style>
+</head>
+
+<body>
+
+<h2>キャラ選択</h2>
+<div id="list"></div>
+<button onclick="addPet()">＋ 新しい子</button>
+
+<div class="card">
+
+<h2 id="name"></h2>
+
+<input id="nameInput" placeholder="名前変更">
+<button onclick="changeName()">変更</button>
+
+<p>出会って <span id="days">0</span> 日</p>
+
+<img id="petImage">
+
+<br>
+<input type="file" onchange="changeImage(event)">
+
+<h3>🍚 ご飯: <span id="food"></span>%</h3>
+<h3>💗 愛: <span id="love"></span>%</h3>
+
+<button onclick="feed()">ご飯</button>
+<button onclick="loveUp()">愛でる</button>
+
+</div>
+
+<script>
+let pets = JSON.parse(localStorage.getItem("pets")) || [];
+let current = 0;
+
+function save(){
+  localStorage.setItem("pets", JSON.stringify(pets));
+}
+
+function addPet(){
+  pets.push({
+    name:"新しい子",
+    food:100,
+    love:100,
+    start:Date.now(),
+    image:""
+  });
+  current = pets.length - 1;
+  save();
+  render();
+}
+
+function selectPet(i){
+  current = i;
+  render();
+}
+
+function moveUp(i){
+  if(i === 0) return;
+  [pets[i], pets[i-1]] = [pets[i-1], pets[i]];
+  current = i-1;
+  save(); render();
+}
+
+function moveDown(i){
+  if(i === pets.length-1) return;
+  [pets[i], pets[i+1]] = [pets[i+1], pets[i]];
+  current = i+1;
+  save(); render();
+}
+
+function render(){
+  let html = "";
+  pets.forEach((p, i)=>{
+    html += `
+    <div>
+      <button onclick="selectPet(${i})">${p.name}</button>
+      <button onclick="moveUp(${i})">↑</button>
+      <button onclick="moveDown(${i})">↓</button>
+    </div>`;
+  });
+  document.getElementById("list").innerHTML = html;
+
+  if(!pets[current]) return;
+
+  let p = pets[current];
+
+  document.getElementById("name").innerText = p.name;
+  document.getElementById("food").innerText = p.food;
+  document.getElementById("love").innerText = p.love;
+  document.getElementById("petImage").src = p.image;
+
+  let days = Math.floor((Date.now()-p.start)/(1000*60*60*24));
+  document.getElementById("days").innerText = days;
+}
+
+function feed(){
+  pets[current].food = Math.min(100, pets[current].food + 10);
+  save(); render();
+}
+
+function loveUp(){
+  pets[current].love = Math.min(100, pets[current].love + 10);
+  save(); render();
+}
+
+function changeName(){
+  pets[current].name = document.getElementById("nameInput").value;
+  save(); render();
+}
+
+function changeImage(e){
+  let reader = new FileReader();
+  reader.onload = function(){
+    pets[current].image = reader.result;
+    save(); render();
+  }
+  reader.readAsDataURL(e.target.files[0]);
+}
+
+setInterval(()=>{
+  pets.forEach(p=>{
+    p.food = Math.max(0, p.food - 1);
+    p.love = Math.max(0, p.love - 1);
+  });
+  save(); render();
+},300000);
+
+render();
+</script>
+
+</body>
+</html>
