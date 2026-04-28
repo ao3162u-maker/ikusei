@@ -58,8 +58,14 @@ width:160px;height:160px;border-radius:16px;object-fit:cover
 }
 
 button{
-width:100%;margin-top:8px;padding:12px;
-border:none;border-radius:12px;background:#ff5c8a;color:#fff
+width:100%;
+margin-top:8px;
+padding:12px;
+border:none;
+border-radius:12px;
+background:#ff5c8a;
+color:#fff;
+touch-action: manipulation; /* ←iPhone安定化 */
 }
 
 #addBtn{
@@ -89,20 +95,23 @@ width:60px;height:60px;border-radius:50%;font-size:26px;
 <h3>🍚 <span id="food"></span>%</h3>
 <h3>💗 <span id="love"></span>%</h3>
 
-<button onclick="feed()">ご飯</button>
-<button onclick="loveUp()">愛でる</button>
+<button onclick="feed()" ontouchstart="feed()">ご飯</button>
+<button onclick="loveUp()" ontouchstart="loveUp()">愛でる</button>
 
 <input id="nameInput" placeholder="名前">
-<button onclick="changeName()">名前変更</button>
+<button onclick="changeName()" ontouchstart="changeName()">名前変更</button>
 
 <input type="file" accept="image/*" onchange="changeImage(event)">
 
-<button onclick="deletePet()">この子を削除</button>
-<button onclick="back()">戻る</button>
+<button onclick="deletePet()" ontouchstart="deletePet()">この子を削除</button>
+
+<!-- ⭐ここが修正ポイント -->
+<button onclick="back()" ontouchstart="back()">戻る</button>
+
 </div>
 </div>
 
-<button id="addBtn" onclick="addPet()">＋</button>
+<button id="addBtn" onclick="addPet()" ontouchstart="addPet()">＋</button>
 
 <script>
 let data=JSON.parse(localStorage.getItem("appData"))||{
@@ -132,8 +141,9 @@ save();
 function renderTabs(){
 tabs.innerHTML=Object.keys(data.groups).map(g=>`
 <div class="tab ${g===data.currentGroup?'activeTab':''}"
-onclick="changeGroup('${g}')">${g}</div>
-`).join("")+`<div class="tab" onclick="addGroup()">＋</div>`;
+onclick="changeGroup('${g}')"
+ontouchstart="changeGroup('${g}')">${g}</div>
+`).join("")+`<div class="tab" onclick="addGroup()" ontouchstart="addGroup()">＋</div>`;
 }
 
 function changeGroup(g){
@@ -169,7 +179,7 @@ save();
 render();
 }
 
-/* 削除（iPhone安定版） */
+/* 削除 */
 function deletePet(){
 let ok = window.confirm("削除する？");
 if(!ok) return;
@@ -209,7 +219,7 @@ get().name=nameInput.value;
 save();render();
 }
 
-/* 画像軽量 */
+/* 画像 */
 function changeImage(e){
 const file=e.target.files[0];
 const img=new Image();
@@ -241,9 +251,22 @@ function showList(){
 listScreen.classList.add("active");
 detailScreen.classList.remove("active");
 }
+
 function showDetail(){
 listScreen.classList.remove("active");
 detailScreen.classList.add("active");
+}
+
+/* ⭐戻る完全修正版 */
+function back(){
+current = 0;
+showList();
+render();
+
+/* iPhone強制再描画 */
+document.body.style.display="none";
+document.body.offsetHeight;
+document.body.style.display="";
 }
 
 /* 表示 */
@@ -253,7 +276,7 @@ renderTabs();
 let arr=data.groups[data.currentGroup];
 
 grid.innerHTML=arr.map((p,i)=>`
-<div class="card" onclick="selectPet(${i})">
+<div class="card" onclick="selectPet(${i})" ontouchstart="selectPet(${i})">
 <img src="${p.image||''}">
 <b>${p.name}</b>
 <div>🍚${p.food}% 💗${p.love}%</div>
