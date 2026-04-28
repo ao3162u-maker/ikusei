@@ -8,6 +8,8 @@
 
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#ff5c8a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="icon.png">
 
 <style>
@@ -64,16 +66,6 @@ border:none;border-radius:12px;background:#ff5c8a;color:#fff
 position:fixed;bottom:20px;right:20px;
 width:60px;height:60px;border-radius:50%;font-size:26px;
 }
-
-/* エモート */
-.floatEmoji{
-position:absolute;font-size:24px;
-animation:float 1s forwards;
-}
-@keyframes float{
-0%{opacity:1;transform:translateY(0)}
-100%{opacity:0;transform:translateY(-60px)}
-}
 </style>
 </head>
 
@@ -83,12 +75,10 @@ animation:float 1s forwards;
 
 <div id="tabs"></div>
 
-<!-- 一覧 -->
 <div id="listScreen" class="screen active">
 <div id="grid"></div>
 </div>
 
-<!-- 詳細 -->
 <div id="detailScreen" class="screen">
 <div id="detail">
 <h2 id="name"></h2>
@@ -107,7 +97,7 @@ animation:float 1s forwards;
 
 <input type="file" accept="image/*" onchange="changeImage(event)">
 
-<button onclick="deletePet()">削除</button>
+<button onclick="deletePet()">この子を削除</button>
 <button onclick="back()">戻る</button>
 </div>
 </div>
@@ -122,12 +112,19 @@ currentGroup:"全員"
 
 let current=0;
 
-/* 保存 */
-function save(){localStorage.setItem("appData",JSON.stringify(data));}
+function save(){
+localStorage.setItem("appData",JSON.stringify(data));
+}
 
 /* 初期 */
 if(data.groups["全員"].length===0){
-data.groups["全員"].push({name:"りん",food:100,love:100,start:Date.now(),image:""});
+data.groups["全員"].push({
+name:"りん",
+food:100,
+love:100,
+start:Date.now(),
+image:""
+});
 save();
 }
 
@@ -141,102 +138,129 @@ onclick="changeGroup('${g}')">${g}</div>
 
 function changeGroup(g){
 data.currentGroup=g;
+current=0;
+save();
 render();
 }
 
-/* グループ追加 */
+/* フォルダ追加 */
 function addGroup(){
 let name=prompt("グループ名");
-if(!name)return;
+if(!name) return;
+if(data.groups[name]) return;
+
 data.groups[name]=[];
 data.currentGroup=name;
-save();render();
+
+save();
+render();
 }
 
-/* 画面 */
-function showList(){listScreen.classList.add("active");detailScreen.classList.remove("active");}
-function showDetail(){listScreen.classList.remove("active");detailScreen.classList.add("active");}
-
-/* キャラ */
+/* キャラ追加 */
 function addPet(){
 data.groups[data.currentGroup].push({
-name:"なまえ未設定",food:100,love:100,start:Date.now(),image:""
+name:"なまえ未設定",
+food:100,
+love:100,
+start:Date.now(),
+image:""
 });
-save();render();
+save();
+render();
 }
 
+/* 削除（iPhone安定版） */
 function deletePet(){
-if(confirm("削除する？")){
+let ok = window.confirm("削除する？");
+if(!ok) return;
+
 data.groups[data.currentGroup].splice(current,1);
 current=0;
-save();showList();render();
-}
-}
 
-/* 並び替え（ドラッグ） */
-let dragIndex=null;
-function dragStart(i){dragIndex=i;}
-function drop(i){
-let arr=data.groups[data.currentGroup];
-[arr[dragIndex],arr[i]]=[arr[i],arr[dragIndex]];
-save();render();
+save();
+showList();
+render();
 }
 
 /* 選択 */
-function selectPet(i){current=i;showDetail();render();}
+function selectPet(i){
+current=i;
+showDetail();
+render();
+}
 
 /* 操作 */
-function feed(){let p=get();p.food=Math.min(100,p.food+10);save();render();emoji("😋");}
-function loveUp(){let p=get();p.love=Math.min(100,p.love+10);save();render();emoji("💕");}
-function changeName(){get().name=nameInput.value;save();render();}
+function get(){return data.groups[data.currentGroup][current];}
+
+function feed(){
+let p=get();
+p.food=Math.min(100,p.food+10);
+save();render();
+}
+
+function loveUp(){
+let p=get();
+p.love=Math.min(100,p.love+10);
+save();render();
+}
+
+function changeName(){
+get().name=nameInput.value;
+save();render();
+}
 
 /* 画像軽量 */
 function changeImage(e){
 const file=e.target.files[0];
 const img=new Image();
-const r=new FileReader();
+const reader=new FileReader();
 
-r.onload=e=>img.src=e.target.result;
+reader.onload=e=>img.src=e.target.result;
+
 img.onload=()=>{
-const c=document.createElement("canvas");
-const ctx=c.getContext("2d");
+const canvas=document.createElement("canvas");
+const ctx=canvas.getContext("2d");
+
 let max=300,w=img.width,h=img.height;
 
 if(w>h&&w>max){h*=max/w;w=max;}
 else if(h>max){w*=max/h;h=max;}
 
-c.width=w;c.height=h;
+canvas.width=w;canvas.height=h;
 ctx.drawImage(img,0,0,w,h);
 
-get().image=c.toDataURL("image/jpeg",0.7);
+get().image=canvas.toDataURL("image/jpeg",0.7);
 save();render();
 };
-r.readAsDataURL(file);
+
+reader.readAsDataURL(file);
 }
 
-/* 補助 */
-function get(){return data.groups[data.currentGroup][current];}
-function back(){showList();}
+/* 画面 */
+function showList(){
+listScreen.classList.add("active");
+detailScreen.classList.remove("active");
+}
+function showDetail(){
+listScreen.classList.remove("active");
+detailScreen.classList.add("active");
+}
 
-/* 描画 */
+/* 表示 */
 function render(){
 renderTabs();
 
 let arr=data.groups[data.currentGroup];
 
 grid.innerHTML=arr.map((p,i)=>`
-<div class="card"
-draggable="true"
-ondragstart="dragStart(${i})"
-ondrop="drop(${i})"
-ondragover="event.preventDefault()">
-<img src="${p.image||''}" onclick="selectPet(${i})">
+<div class="card" onclick="selectPet(${i})">
+<img src="${p.image||''}">
 <b>${p.name}</b>
 <div>🍚${p.food}% 💗${p.love}%</div>
 </div>`).join("");
 
 let p=get();
-if(!p)return;
+if(!p) return;
 
 name.innerText=p.name;
 food.innerText=p.food;
@@ -256,18 +280,6 @@ p.love=Math.max(0,p.love-1);
 });
 save();render();
 },600000);
-
-/* エモート */
-function emoji(t){
-const r=petImage.getBoundingClientRect();
-const el=document.createElement("div");
-el.className="floatEmoji";
-el.innerText=t;
-el.style.left=(r.left+r.width/2)+"px";
-el.style.top=(r.top+scrollY)+"px";
-document.body.appendChild(el);
-setTimeout(()=>el.remove(),1000);
-}
 
 /* 起動 */
 window.onload=()=>{
